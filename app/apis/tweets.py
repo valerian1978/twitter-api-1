@@ -1,6 +1,5 @@
 from flask_restplus import Namespace, Resource, fields
 from flask import abort
-from app.db import tweet_repository
 from app.models import Tweet
 
 api = Namespace('tweets')
@@ -21,7 +20,8 @@ json_new_tweet = api.model('New tweet', {
 class TweetResource(Resource):
     @api.marshal_with(json_tweet)
     def get(self, id):
-        tweet = tweet_repository.get(id)
+        #tweet = tweet_repository.get(id)
+        tweet = db.sessions.query(Tweeter).get(1)
         if tweet is None:
             api.abort(404, "Tweet {} doesn't exist".format(id))
         else:
@@ -30,19 +30,24 @@ class TweetResource(Resource):
     @api.marshal_with(json_tweet, code=200)
     @api.expect(json_new_tweet, validate=True)
     def patch(self, id):
-        tweet = tweet_repository.get(id)
+        #tweet = tweet_repository.get(id)
+        tweet = db.sessions.query(Tweet).get(1)
         if tweet is None:
             api.abort(404, "Tweet {} doesn't exist".format(id))
         else:
             tweet.text = api.payload["text"]
+            db.session.commit()
             return tweet
 
     def delete(self, id):
-        tweet = tweet_repository.get(id)
+        #tweet = tweet_repository.get(id)
+        tweet = db.sessions.query(Tweet).get(1)
         if tweet is None:
             api.abort(404, "Tweet {} doesn't exist".format(id))
         else:
-            tweet_repository.remove(id)
+            #tweet_repository.remove(id)
+            db.session.delete(tweet)
+            db.session.commit()
             return None
 
 @api.route('')
@@ -54,7 +59,9 @@ class TweetsResource(Resource):
         text = api.payload["text"]
         if len(text) > 0:
             tweet = Tweet(text)
-            tweet_repository.add(tweet)
+            #tweet_repository.add(tweet)
+            db.session.add(tweet)
+            db.session.commit()
             return tweet, 201
         else:
             return abort(422, "Tweet text can't be empty")
